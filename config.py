@@ -13,7 +13,8 @@ class Config:
     GITHUB_API_URL = "https://api.github.com/graphql"
     
     # Query parameters
-    REPOSITORIES_COUNT = 100
+    REPOSITORIES_COUNT = 1000
+    PAGE_SIZE = 100  # GitHub GraphQL max per page
     RATE_LIMIT_DELAY = 0.2  # seconds between requests
     
     # Headers for API requests
