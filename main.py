@@ -1,38 +1,12 @@
 """Main script for GitHub repository analysis - Lab01S01."""
 
 import json
-import os
 from typing import List, Dict
-from datetime import datetime
 
 from github_client import GitHubClient
 from data_processor import RepositoryMetrics
+from data_exporter import DataExporter
 from config import Config
-
-
-def save_to_json(repositories: List[Dict], filename: str = None) -> str:
-    """
-    Save repository data to JSON file.
-    
-    Args:
-        repositories: List of repository data
-        filename: Output filename (optional, auto-generated if not provided)
-        
-    Returns:
-        Path to saved file
-    """
-    if filename is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"repositories_{timestamp}.json"
-    
-    output_dir = "output"
-    os.makedirs(output_dir, exist_ok=True)
-    filepath = os.path.join(output_dir, filename)
-    
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(repositories, f, indent=2, ensure_ascii=False)
-    
-    return filepath
 
 
 def display_repository_data(repositories: List[Dict]) -> None:
@@ -71,9 +45,13 @@ def main():
         print(f"Processed {len(processed_repos)} repositories\n")
         
         # Save results to JSON file
-        print("Step 4: Saving results to file...")
-        output_file = save_to_json(processed_repos)
-        print(f"Data saved to: {output_file}\n")
+        print("Step 4: Saving results to files...")
+        output_json = DataExporter.save_to_json(processed_repos)
+        print(f"JSON data saved to: {output_json}")
+        
+        # Save results to CSV file
+        output_csv = DataExporter.save_to_csv(processed_repos)
+        print(f"CSV data saved to: {output_csv}\n")
         
         # Display results
         print("="*80)
@@ -83,7 +61,8 @@ def main():
         
         print(f"\n{'='*80}")
         print(f"Analysis complete: {len(processed_repos)} repositories processed")
-        print(f"Results saved to: {output_file}")
+        print(f"JSON file: {output_json}")
+        print(f"CSV file: {output_csv}")
         print(f"{'='*80}")
         
     except Exception as e:
