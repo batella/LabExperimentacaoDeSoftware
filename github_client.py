@@ -6,7 +6,7 @@ from typing import List, Dict, Optional
 
 from config import Config
 from queries import GitHubQueries
-
+config.py
 
 class GitHubClient:
     """Client for interacting with GitHub GraphQL API."""
@@ -47,7 +47,7 @@ class GitHubClient:
     
     def get_top_repositories(self, count: int = 100) -> List[Dict]:
         """
-        Fetch list of top starred repositories.
+        Fetch list of top starred repositories with pagination support.
         
         Args:
             count: Number of repositories to fetch (default: 100)
@@ -55,8 +55,36 @@ class GitHubClient:
         Returns:
             List of repository basic info (name, owner)
         """
-        data = self._make_request(GitHubQueries.SEARCH_TOP_REPOSITORIES)
-        return data["data"]["search"]["nodes"]
+        if count <= 100:
+            # Simple query without pagination for counts <= 100
+            data = self._make_request(GitHubQueries.SEARCH_TOP_REPOSITORIES)
+            return data["data"]["search"]["nodes"][:count]
+        
+        # Pagination for counts > 100
+        repositories = []
+        cursor = None
+        pages_needed = (count + Config.PAGE_SIZE - 1) // Config.PAGE_SIZE
+        
+        for page in range(pages_needed):
+            variables = {"cursor": cursor} if cursor else None
+            data = self._make_request(
+                GitHubQueries.SEARCH_TOP_REPOSITORIES_PAGINATED,
+                variables
+            )
+            
+            search_result = data["data"]["search"]
+            repositories.extend(search_result["nodes"])
+            
+            print(f"Fetched page {page + 1}/{pages_needed} ({len(repositories)}/{count} repos)")
+            
+            # Check if we have enough repositories or if there's no next page
+            if len(repositories) >= count or not search_result["pageInfo"]["hasNextPage"]:
+                break
+            
+            cursor = search_result["pageInfo"]["endCursor"]
+            time.sleep(self.delay)  # Rate limiting between pages
+        
+        return repositories[:count]
     
     def get_repository_details(self, owner: str, name: str) -> Dict:
         """

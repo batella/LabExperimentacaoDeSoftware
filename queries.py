@@ -23,6 +23,30 @@ class GitHubQueries:
     }
     """
     
+    SEARCH_TOP_REPOSITORIES_PAGINATED = """
+    query($cursor: String) {
+      search(
+        query: "stars:>1 sort:stars-desc"
+        type: REPOSITORY
+        first: 100
+        after: $cursor
+      ) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          ... on Repository {
+            name
+            owner {
+              login
+            }
+          }
+        }
+      }
+    }
+    """
+    
     REPOSITORY_DETAILS = """
     query($owner: String!, $name: String!) {
       repository(owner: $owner, name: $name) {
