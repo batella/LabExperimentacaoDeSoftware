@@ -419,14 +419,6 @@ Mediana de releases: 332
 Mediana de dias desde atualização: 0
 ```
 
-##### Outras Linguagens (Agregado)
-
-```
-Mediana de PRs aceitas: [INSERIR]
-Mediana de releases: [INSERIR]
-Mediana de dias desde atualização: [INSERIR]
-```
-
 #### Comparação e Análise
 
 **Tabela Comparativa:**
@@ -466,7 +458,7 @@ Mediana de dias desde atualização: [INSERIR]
 
 **Respondendo à RQ07:**
 
-❌ **Hipótese REFUTADA parcialmente:** Linguagens mais populares (TypeScript/Python) NÃO necessariamente recebem mais contribuições que outras.
+**Hipótese REFUTADA parcialmente:** Linguagens mais populares (TypeScript/Python) NÃO necessariamente recebem mais contribuições que outras.
 
 **Fatores mais importantes que linguagem:**
 1. **Escopo do projeto:** Mega-projetos (TensorFlow, Linux) atraem mais PRs independente da linguagem
@@ -552,28 +544,6 @@ Esta pesquisa reforça que **software livre é, acima de tudo, um empreendimento
 ## Referências
 
 - GitHub GraphQL API v4 Documentation. Disponível em: https://docs.github.com/en/graphql
-- Dados coletados em: [INSERIR DATA]
-- Repositório com código de análise: [INSERIR LINK SE PÚBLICO]
+- Dados coletados em: 06/03/2026
 
 ---
-
-## Apêndices
-
-### A. Estatísticas Descritivas Completas
-
-[OPCIONAL: Incluir tabelas completas com todas as métricas calculadas]
-
-### B. Repositórios Outliers
-
-[OPCIONAL: Listar repositórios com valores extremos e justificar]
-
-### C. Código de Análise
-
-O código utilizado para coleta e análise dos dados está disponível em:
-- `main.py` - Script principal de coleta
-- `github_client.py` - Cliente da API do GitHub
-- `data_processor.py` - Processamento e cálculo de métricas
-- `queries.py` - Queries GraphQL
-- `config.py` - Configurações
-
-[OPCIONAL: Incluir trechos de código relevantes]
