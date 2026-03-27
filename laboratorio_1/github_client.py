@@ -6,7 +6,6 @@ from typing import List, Dict, Optional
 
 from config import Config
 from queries import GitHubQueries
-config.py
 
 class GitHubClient:
     """Client for interacting with GitHub GraphQL API."""
