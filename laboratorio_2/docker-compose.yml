@@ -1,0 +1,10 @@
+services:
+  lab02:
+    build: .
+    env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./output:/app/output
+      - ./ck.jar:/app/ck.jar:ro
+    command: ["--ck-only-first"]
