@@ -91,7 +91,7 @@ Quartil 75%: 4217 dias (~11.6 anos)
 
 **A hipótese H1 foi confirmada com resultados ainda mais expressivos que o esperado.** Os repositórios mais populares do GitHub são, de fato, projetos maduros. Com uma mediana de 9 anos de idade, os dados superam nossa expectativa inicial de 5+ anos.
 
-O quartil inferior (25%) marca 6.1 anos, indicando que mesmo os projetos "mais jovens" entre os top 100 já possuem uma trajetória considerável. O repositório mais antigo tem impressionantes 16.5 anos (criado em 2011), provavelmente refletindo projetos estabelecidos que migraram para o GitHub.
+O quartil inferior (25%) marca 6.1 anos, indicando que mesmo os projetos "mais jovens" entre os top 1000 já possuem uma trajetória considerável. O repositório mais antigo tem impressionantes 16.5 anos (criado em 2011), provavelmente refletindo projetos estabelecidos que migraram para o GitHub.
 
 O único outlier significativo é um repositório com apenas 102 dias (~3 meses), sugerindo que casos excepcionais de viralização rápida são possíveis, mas extremamente raros. A diferença entre mediana (9 anos) e média (8.5 anos) indica uma distribuição relativamente simétrica, sem muitos repositórios extremamente jovens distorcendo os resultados.
 
@@ -334,7 +334,7 @@ Tendência clara: **web + IA/data science dominam** o GitHub público.
 - Boa gestão de backlog
 - Responsividade à comunidade
 
-Projetos com baixa taxa (<40%) geralmente são mega-projetos com fluxo massivo de issues ou intencionalmente usam issues como roadmap público.
+Projetos com baixa taxa (<40%) geralmente são mega-projetos com fluxo mas  sivo de issues ou intencionalmente usam issues como roadmap público.
 
 ### 4.2 Insights Adicionais
 
@@ -478,7 +478,7 @@ Mediana de dias desde atualização: 0
 
 ## 6. Conclusões
 
-Este estudo analisou os 100 repositórios mais populares do GitHub para compreender as características que definem projetos open-source de sucesso. Os principais achados foram:
+Este estudo analisou os 1000 repositórios mais populares do GitHub para compreender as características que definem projetos open-source de sucesso. Os principais achados foram:
 
 ### Principais Descobertas
 
@@ -516,7 +516,7 @@ Este estudo analisou os 100 repositórios mais populares do GitHub para compreen
 ### Limitações e Trabalhos Futuros
 
 **Limitações deste estudo:**
-- Amostra de 100 repositórios (planejado 1000) limita generalizações
+- Amostra de 1000 repositórios limita generalizações
 - Snapshot temporal não captura evolução ao longo do tempo
 - Métrica de "atualização" do GitHub é ampla (inclui issues, não só commits)
 - Viés GitHub: plataforma específica pode não representar todo ecossistema open-source
