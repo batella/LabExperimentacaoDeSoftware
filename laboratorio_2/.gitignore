@@ -3,6 +3,15 @@ venv/
 __pycache__/
 *.pyc
 repos/
-output/
 ck.jar
 .claude/
+
+# Pipeline output: ignore everything except the report deliverables.
+# ck_results/ in particular is ~4 GB of per-repo CK CSVs and must NOT
+# be committed. Only keep the top-level CSVs and the analysis artifacts
+# referenced by RELATORIO.md.
+output/*
+!output/analysis/
+!output/repositories_list.csv
+!output/metrics_summary.csv
+!output/failures.csv

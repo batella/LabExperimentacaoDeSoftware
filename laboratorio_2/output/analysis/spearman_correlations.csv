@@ -1,0 +1,13 @@
+rq,x,y,n,spearman_rho,p_value,significant_5pct
+RQ01_popularity,stars,cbo_median,972,0.0409,0.203101,False
+RQ01_popularity,stars,dit_median,972,-0.038,0.236802,False
+RQ01_popularity,stars,lcom_median,972,0.0138,0.666599,False
+RQ02_maturity,age_years,cbo_median,972,0.0206,0.520591,False
+RQ02_maturity,age_years,dit_median,972,0.0963,0.002664,True
+RQ02_maturity,age_years,lcom_median,972,0.084,0.008771,True
+RQ03_activity,releases,cbo_median,972,0.2852,0.0,True
+RQ03_activity,releases,dit_median,972,-0.0521,0.104805,False
+RQ03_activity,releases,lcom_median,972,0.1183,0.000218,True
+RQ04_size,loc_total,cbo_median,972,0.2921,0.0,True
+RQ04_size,loc_total,dit_median,972,-0.0448,0.162384,False
+RQ04_size,loc_total,lcom_median,972,0.1559,1e-06,True
