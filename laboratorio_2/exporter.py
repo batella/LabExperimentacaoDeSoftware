@@ -2,8 +2,16 @@
 
 import csv
 import threading
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Set
+
+
+FAILURE_FIELDS = [
+    "full_name",
+    "reason",
+    "timestamp",
+]
 
 
 REPO_LIST_FIELDS = [
@@ -128,6 +136,66 @@ class IncrementalMetricsWriter:
 
     def write(self, row: Dict) -> None:
         """Append *row* to the CSV under a lock and flush to disk."""
+        with self._lock:
+            self._writer.writerow(row)
+            self._file.flush()
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if self._file is not None:
+            self._file.close()
+            self._file = None
+            self._writer = None  # type: ignore[assignment]
+
+
+def load_failed_repos(filepath: Path) -> Set[str]:
+    """
+    Return the set of ``full_name`` values already logged as failures.
+
+    Used by the pipeline's resume mode to skip repositories that failed
+    in a previous run (unless --retry-failed is passed).
+    """
+    if not filepath.exists() or filepath.stat().st_size == 0:
+        return set()
+    with open(filepath, "r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        return {row["full_name"] for row in reader if row.get("full_name")}
+
+
+class IncrementalFailureWriter:
+    """
+    Thread-safe, append-mode writer for ``failures.csv``.
+
+    Records one row per repository that could not be processed (clone
+    failure, CK failure, unhandled exception). Each row is flushed to
+    disk immediately so that a mid-run crash still leaves a complete
+    audit trail of what went wrong for every repo touched so far.
+    """
+
+    def __init__(self, filepath: Path) -> None:
+        self.filepath = filepath
+        self._lock = threading.Lock()
+        self._file = None
+        self._writer: csv.DictWriter = None  # type: ignore[assignment]
+
+    def __enter__(self) -> "IncrementalFailureWriter":
+        _ensure_output_dir(self.filepath.parent)
+        is_new = not self.filepath.exists() or self.filepath.stat().st_size == 0
+        self._file = open(self.filepath, "a", encoding="utf-8", newline="")
+        self._writer = csv.DictWriter(
+            self._file, fieldnames=FAILURE_FIELDS, extrasaction="ignore"
+        )
+        if is_new:
+            self._writer.writeheader()
+            self._file.flush()
+        return self
+
+    def write(self, full_name: str, reason: str) -> None:
+        """Append a failure row under a lock and flush to disk."""
+        row = {
+            "full_name": full_name,
+            "reason": reason or "",
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
         with self._lock:
             self._writer.writerow(row)
             self._file.flush()

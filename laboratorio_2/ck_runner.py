@@ -5,7 +5,7 @@ import shutil
 import stat
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from config import Config
 
@@ -19,6 +19,13 @@ _CK_VARIABLES_AND_FIELDS = "false"
 _CLONE_TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 _CK_TIMEOUT_SECONDS = 60 * 30     # 30 minutes
 
+# Maximum number of characters of subprocess stderr to surface as a reason.
+# Keeps the failures.csv readable and avoids 10 KB stack traces in rows.
+_MAX_REASON_CHARS = 300
+
+# Type alias for "did it work + why not if it failed"
+RunResult = Tuple[bool, Optional[str]]
+
 
 def _run(cmd: list, cwd: Optional[Path] = None, timeout: Optional[int] = None) -> subprocess.CompletedProcess:
     """Run a subprocess command and return the completed process."""
@@ -31,15 +38,40 @@ def _run(cmd: list, cwd: Optional[Path] = None, timeout: Optional[int] = None) -
     )
 
 
-def _clone_repository(owner: str, name: str, target_dir: Path) -> bool:
+def _extract_reason(text: str) -> str:
+    """
+    Return the most informative line of a subprocess' stderr.
+
+    Git prints ``Cloning into '...'`` on stdout/stderr before the real
+    error (``fatal:`` or ``error:``), and java similarly prefixes
+    diagnostic lines. We prefer lines starting with ``fatal:``,
+    ``error:``, or ``Error:`` if any exist; otherwise fall back to the
+    last non-empty line (which is usually the most specific); otherwise
+    to the first non-empty line. Result is trimmed to _MAX_REASON_CHARS.
+    """
+    lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+    if not lines:
+        return (text or "").strip()[:_MAX_REASON_CHARS]
+
+    for line in lines:
+        low = line.lower()
+        if low.startswith(("fatal:", "error:", "exception")):
+            return line[:_MAX_REASON_CHARS]
+
+    return lines[-1][:_MAX_REASON_CHARS]
+
+
+def _clone_repository(owner: str, name: str, target_dir: Path) -> RunResult:
     """
     Shallow-clone *owner/name* into *target_dir*.
 
-    Returns True on success, False otherwise. If *target_dir* already exists
-    and is non-empty, assume a previous clone succeeded and return True.
+    Returns (ok, reason). On success reason is None. On failure reason is
+    a short human-readable string suitable for a failures.csv row.
+    If *target_dir* already exists and is non-empty, assume a previous
+    clone succeeded and return (True, None).
     """
     if target_dir.exists() and any(target_dir.iterdir()):
-        return True
+        return True, None
 
     target_dir.parent.mkdir(parents=True, exist_ok=True)
 
@@ -50,31 +82,33 @@ def _clone_repository(owner: str, name: str, target_dir: Path) -> bool:
             timeout=_CLONE_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired:
-        print(f"    [ERROR] git clone timed out for {owner}/{name}")
-        return False
+        reason = f"git clone timed out after {_CLONE_TIMEOUT_SECONDS}s"
+        print(f"    [ERROR] {reason} for {owner}/{name}")
+        return False, reason
     except (FileNotFoundError, OSError) as exc:
-        print(f"    [ERROR] git executable not found ({Config.GIT_BIN}): {exc}")
-        return False
+        reason = f"git executable not found ({Config.GIT_BIN}): {exc}"
+        print(f"    [ERROR] {reason}")
+        return False, reason
 
     if result.returncode != 0:
-        print(f"    [ERROR] git clone failed for {owner}/{name}: {result.stderr.strip()[:200]}")
-        return False
+        reason = f"git clone failed: {_extract_reason(result.stderr)}"
+        print(f"    [ERROR] {reason} ({owner}/{name})")
+        return False, reason
 
-    return True
+    return True, None
 
 
-def _run_ck(project_path: Path, ck_output_dir: Path) -> bool:
+def _run_ck(project_path: Path, ck_output_dir: Path) -> RunResult:
     """
     Execute the CK JAR against *project_path*, writing CSVs into *ck_output_dir*.
 
-    CK writes files named like ``class.csv``, ``method.csv`` directly in the
-    output directory, so *ck_output_dir* must exist beforehand.
-    Returns True on success.
+    Returns (ok, reason) with the same semantics as _clone_repository.
     """
     ck_jar = Path(Config.CK_JAR_PATH)
     if not ck_jar.is_file():
-        print(f"    [ERROR] CK jar not found at {ck_jar}")
-        return False
+        reason = f"CK jar not found at {ck_jar}"
+        print(f"    [ERROR] {reason}")
+        return False, reason
 
     ck_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -96,22 +130,26 @@ def _run_ck(project_path: Path, ck_output_dir: Path) -> bool:
             timeout=_CK_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired:
-        print(f"    [ERROR] CK timed out for {project_path}")
-        return False
+        reason = f"CK timed out after {_CK_TIMEOUT_SECONDS}s"
+        print(f"    [ERROR] {reason} for {project_path}")
+        return False, reason
     except (FileNotFoundError, OSError) as exc:
-        print(f"    [ERROR] Java executable not found ({Config.JAVA_BIN}): {exc}")
-        return False
+        reason = f"java executable not found ({Config.JAVA_BIN}): {exc}"
+        print(f"    [ERROR] {reason}")
+        return False, reason
 
     if result.returncode != 0:
-        print(f"    [ERROR] CK failed for {project_path}: {result.stderr.strip()[:200]}")
-        return False
+        reason = f"CK exited with code {result.returncode}: {_extract_reason(result.stderr)}"
+        print(f"    [ERROR] {reason} ({project_path})")
+        return False, reason
 
     class_csv = ck_output_dir / Config.CK_CLASS_FILE
     if not class_csv.is_file():
-        print(f"    [ERROR] CK produced no {Config.CK_CLASS_FILE} in {ck_output_dir}")
-        return False
+        reason = f"CK produced no {Config.CK_CLASS_FILE}"
+        print(f"    [ERROR] {reason} in {ck_output_dir}")
+        return False, reason
 
-    return True
+    return True, None
 
 
 def _safe_rmtree(path: Path) -> None:
@@ -140,28 +178,37 @@ def clone_and_run_ck(
     repos_base: Path,
     ck_base: Path,
     keep_clone: bool = False,
-) -> Optional[Path]:
+) -> Tuple[Optional[Path], Optional[str]]:
     """
     Clone *owner/name* and run CK on it.
 
     Creates ``<repos_base>/<owner>__<name>`` for the clone and
-    ``<ck_base>/<owner>__<name>`` for the CK CSV outputs. On success,
-    returns the CK output directory. On any failure, returns None.
+    ``<ck_base>/<owner>__<name>`` for the CK CSV outputs.
+
+    Returns a ``(output_dir, error_reason)`` tuple:
+
+    - On success: ``(Path(ck_output_dir), None)``
+    - On clone failure: ``(None, "git clone failed: ...")``
+    - On CK failure:    ``(None, "CK exited with code N: ...")``
 
     When *keep_clone* is False (default), the clone directory is removed
-    after CK finishes to save disk space.
+    after CK finishes (or after the clone fails) to save disk space.
     """
     safe_key = f"{owner}__{name}"
     clone_dir = repos_base / safe_key
     ck_output_dir = ck_base / safe_key
 
-    if not _clone_repository(owner, name, clone_dir):
+    clone_ok, clone_reason = _clone_repository(owner, name, clone_dir)
+    if not clone_ok:
         _safe_rmtree(clone_dir)
-        return None
+        return None, clone_reason
 
-    success = _run_ck(clone_dir, ck_output_dir)
+    ck_ok, ck_reason = _run_ck(clone_dir, ck_output_dir)
 
     if not keep_clone:
         _safe_rmtree(clone_dir)
 
-    return ck_output_dir if success else None
+    if not ck_ok:
+        return None, ck_reason
+
+    return ck_output_dir, None

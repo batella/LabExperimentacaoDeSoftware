@@ -26,6 +26,7 @@ class Config:
 
     REPO_LIST_CSV = "repositories_list.csv"
     METRICS_CSV = "metrics_summary.csv"
+    FAILURES_CSV = "failures.csv"
 
     @classmethod
     def get_headers(cls) -> dict:
