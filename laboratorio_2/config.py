@@ -19,6 +19,8 @@ class Config:
     REPOS_DIR = "repos"
     OUTPUT_DIR = "output"
     CK_JAR_PATH = os.getenv("CK_JAR_PATH", "ck.jar")
+    JAVA_BIN = os.getenv("JAVA_BIN", "java")
+    GIT_BIN = os.getenv("GIT_BIN", "git")
 
     CK_CLASS_FILE = "class.csv"
 

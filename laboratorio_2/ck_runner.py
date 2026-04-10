@@ -1,6 +1,8 @@
 """Clone Java repositories and run the CK static-analysis tool on them."""
 
+import os
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -44,11 +46,14 @@ def _clone_repository(owner: str, name: str, target_dir: Path) -> bool:
     url = f"https://github.com/{owner}/{name}.git"
     try:
         result = _run(
-            ["git", "clone", "--depth", "1", url, str(target_dir)],
+            [Config.GIT_BIN, "clone", "--depth", "1", url, str(target_dir)],
             timeout=_CLONE_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired:
         print(f"    [ERROR] git clone timed out for {owner}/{name}")
+        return False
+    except (FileNotFoundError, OSError) as exc:
+        print(f"    [ERROR] git executable not found ({Config.GIT_BIN}): {exc}")
         return False
 
     if result.returncode != 0:
@@ -79,7 +84,7 @@ def _run_ck(project_path: Path, ck_output_dir: Path) -> bool:
     try:
         result = _run(
             [
-                "java",
+                Config.JAVA_BIN,
                 "-jar",
                 str(ck_jar),
                 str(project_path),
@@ -92,6 +97,9 @@ def _run_ck(project_path: Path, ck_output_dir: Path) -> bool:
         )
     except subprocess.TimeoutExpired:
         print(f"    [ERROR] CK timed out for {project_path}")
+        return False
+    except (FileNotFoundError, OSError) as exc:
+        print(f"    [ERROR] Java executable not found ({Config.JAVA_BIN}): {exc}")
         return False
 
     if result.returncode != 0:
@@ -107,9 +115,22 @@ def _run_ck(project_path: Path, ck_output_dir: Path) -> bool:
 
 
 def _safe_rmtree(path: Path) -> None:
-    """Remove *path* recursively, ignoring missing directories and errors."""
+    """
+    Remove *path* recursively, handling Windows read-only files (git packs).
+
+    Git writes ``.git/objects/pack/*.pack`` and ``*.idx`` as read-only on
+    Windows, which causes ``shutil.rmtree`` to leave them behind. We clear
+    the read-only bit on every entry before calling rmtree.
+    """
     if not path.exists():
         return
+    for root, dirs, files in os.walk(path):
+        for entry in dirs + files:
+            full = os.path.join(root, entry)
+            try:
+                os.chmod(full, stat.S_IWRITE)
+            except OSError:
+                pass
     shutil.rmtree(path, ignore_errors=True)
 
 
