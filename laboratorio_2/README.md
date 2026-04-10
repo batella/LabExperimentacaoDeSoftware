@@ -24,9 +24,10 @@ laboratorio_2/
 ├── queries.py         # GraphQL query templates
 ├── github_client.py   # GitHub GraphQL API client
 ├── repo_processor.py  # Normalise raw API nodes → flat dicts
-├── ck_runner.py       # Clone repos and run the CK JAR
-├── ck_parser.py       # Parse CK CSV output and compute statistics
+├── ck_runner.py       # Clone repos and run the CK JAR (sprint 2)
+├── ck_parser.py       # Parse CK CSV output and compute statistics (sprint 2)
 ├── exporter.py        # Write results to CSV
+├── analysis.py        # Descriptive stats + correlations (sprint 3)
 ├── main.py            # CLI entry point – orchestrates the pipeline
 ├── requirements.txt
 ├── .env.example
@@ -46,9 +47,9 @@ laboratorio_2/
 cp .env.example .env
 # Add your GITHUB_TOKEN to .env
 
-# Download CK JAR
-wget https://github.com/mauricioaniche/ck/releases/download/0.7.1/ck-0.7.1-SNAPSHOT-jar-with-dependencies.jar \
-     -O ck.jar
+# Download CK JAR (from Maven Central)
+curl -L -o ck.jar \
+     https://repo1.maven.org/maven2/com/github/mauricioaniche/ck/0.7.0/ck-0.7.0-jar-with-dependencies.jar
 
 # Sprint 1 demo (CK on first repo only)
 docker compose up --build
@@ -69,21 +70,15 @@ pip install -r requirements.txt
 cp .env.example .env
 # Add your GITHUB_TOKEN to .env
 
-wget https://github.com/mauricioaniche/ck/releases/download/0.7.1/ck-0.7.1-SNAPSHOT-jar-with-dependencies.jar \
-     -O ck.jar
+curl -L -o ck.jar \
+     https://repo1.maven.org/maven2/com/github/mauricioaniche/ck/0.7.0/ck-0.7.0-jar-with-dependencies.jar
 ```
 
 ---
 
 ## Running (local)
 
-### Sprint 1 – Demo (1 repository, full CSV output)
-
-```bash
-python main.py --ck-only-first
-```
-
-### Full run (all 1 000 repositories)
+### Sprint 1 – Fetch and save the top-1000 repository list
 
 ```bash
 python main.py
@@ -94,8 +89,6 @@ python main.py
 | Flag | Description |
 |------|-------------|
 | `--limit N` | Process only the first N repositories |
-| `--keep-clones` | Keep local clones after CK runs |
-| `--ck-only-first` | Run CK only on the first repository |
 
 ---
 
