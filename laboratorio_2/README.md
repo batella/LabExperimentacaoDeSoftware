@@ -47,8 +47,8 @@ cp .env.example .env
 # Add your GITHUB_TOKEN to .env
 
 # Download CK JAR
-wget https://github.com/mauricioaniche/ck/releases/download/0.7.1/ck-0.7.1-SNAPSHOT-jar-with-dependencies.jar \
-     -O ck.jar
+curl -L -o ck.jar \
+     https://repo1.maven.org/maven2/com/github/mauricioaniche/ck/0.7.0/ck-0.7.0-jar-with-dependencies.jar
 
 # Sprint 1 demo (CK on first repo only)
 docker compose up --build
@@ -69,8 +69,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # Add your GITHUB_TOKEN to .env
 
-wget https://github.com/mauricioaniche/ck/releases/download/0.7.1/ck-0.7.1-SNAPSHOT-jar-with-dependencies.jar \
-     -O ck.jar
+curl -L -o ck.jar \
+     https://repo1.maven.org/maven2/com/github/mauricioaniche/ck/0.7.0/ck-0.7.0-jar-with-dependencies.jar
 ```
 
 ---
