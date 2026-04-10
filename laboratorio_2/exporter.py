@@ -74,6 +74,37 @@ def save_repo_list(repositories: List[Dict], filepath: Path) -> Path:
     return filepath
 
 
+def load_repo_list(filepath: Path) -> List[Dict]:
+    """
+    Load a previously saved repositories_list.csv into a list of dicts.
+
+    Columns are coerced back to the types ``main.step_collect_metrics``
+    expects: ``stars`` / ``releases`` as int, ``age_years`` as float.
+    Returns an empty list if the file does not exist. The returned dicts
+    have the same shape as :func:`repo_processor.normalise_repository`,
+    minus the ``primary_language`` / ``default_branch`` fields that
+    aren't written to the CSV and aren't needed downstream.
+    """
+    if not filepath.exists() or filepath.stat().st_size == 0:
+        return []
+
+    records: List[Dict] = []
+    with open(filepath, "r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            records.append({
+                "owner": row.get("owner", ""),
+                "name": row.get("name", ""),
+                "full_name": row.get("full_name", ""),
+                "url": row.get("url", ""),
+                "stars": int(row.get("stars", 0) or 0),
+                "releases": int(row.get("releases", 0) or 0),
+                "age_years": float(row.get("age_years", 0) or 0),
+                "created_at": row.get("created_at", ""),
+            })
+    return records
+
+
 def save_metrics(records: List[Dict], filepath: Path) -> Path:
     """
     Write the combined process + quality metrics per repository to a CSV file.

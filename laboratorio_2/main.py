@@ -30,6 +30,7 @@ from exporter import (
     IncrementalMetricsWriter,
     load_failed_repos,
     load_processed_repos,
+    load_repo_list,
     save_repo_list,
 )
 
@@ -69,11 +70,43 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Retry repositories previously logged in failures.csv "
              "(by default they are skipped along with already-processed ones)."
     )
+    parser.add_argument(
+        "--refresh-repo-list", action="store_true",
+        help="Force a fresh GitHub GraphQL fetch even if "
+             "repositories_list.csv already exists (default: reuse cached list)."
+    )
     return parser
 
 
-def step_fetch_repositories(limit: int) -> List[Dict]:
-    """Fetch and normalise repository data from GitHub."""
+def step_fetch_repositories(limit: int, refresh: bool = False) -> List[Dict]:
+    """
+    Return the list of target repositories, using the on-disk cache when
+    possible.
+
+    If ``output/repositories_list.csv`` already contains at least *limit*
+    rows and *refresh* is False, the cached file is loaded straight from
+    disk and no GitHub request is made. This avoids re-doing 20 GraphQL
+    requests (and surviving an upstream 5xx) every time the user
+    restarts the pipeline.
+
+    Pass ``--refresh-repo-list`` from the CLI to force a fresh fetch.
+    """
+    output_path = Path(Config.OUTPUT_DIR) / Config.REPO_LIST_CSV
+
+    if not refresh and output_path.is_file():
+        cached = load_repo_list(output_path)
+        if len(cached) >= limit:
+            print(
+                f"[Step 1] Using cached repository list from {output_path} "
+                f"({len(cached)} repos; requested limit {limit}).\n"
+            )
+            return cached[:limit]
+        else:
+            print(
+                f"[Step 1] Cached list has only {len(cached)} rows "
+                f"(need {limit}); fetching fresh data from GitHub."
+            )
+
     print(f"[Step 1] Fetching top {limit} Java repositories from GitHub...")
     client = GitHubClient()
     raw_nodes = client.fetch_java_repositories(count=limit)
@@ -83,7 +116,12 @@ def step_fetch_repositories(limit: int) -> List[Dict]:
 
 
 def step_save_repo_list(repositories: List[Dict]) -> Path:
-    """Save the repository list CSV and return the file path."""
+    """Save the repository list CSV and return the file path.
+
+    Safe to call unconditionally: if the list came from the on-disk cache,
+    re-writing it is a no-op, and if it was freshly fetched we want it
+    persisted so the next run can reuse it.
+    """
     output_path = Path(Config.OUTPUT_DIR) / Config.REPO_LIST_CSV
     saved = save_repo_list(repositories, output_path)
     print(f"[Step 2] Repository list saved to: {saved}\n")
@@ -222,7 +260,9 @@ def main() -> None:
     """Run the full data collection and metric analysis pipeline."""
     args = _build_arg_parser().parse_args()
 
-    repositories = step_fetch_repositories(args.limit)
+    repositories = step_fetch_repositories(
+        args.limit, refresh=args.refresh_repo_list
+    )
     step_save_repo_list(repositories)
 
     step_collect_metrics(
